@@ -1,5 +1,5 @@
 # printingHouseWebSystem
-Web system for printing houses, admins and customers, written using the MEAN stack. Access the web system at [localhost:4200](url)
+Web system for printing houses, admins and customers, written using the MEAN stack. Access the web system at [](http://localhost:4200)
 
 ## Required packages:
 * MongoDB
