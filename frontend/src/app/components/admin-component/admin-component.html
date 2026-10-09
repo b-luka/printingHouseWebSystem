@@ -1,0 +1,281 @@
+<div class="dashboard-container">
+
+  <!-- Header / Navigation -->
+  <header class="dashboard-header">
+    <div class="logo">
+      <span>🛡️</span> Admin Dashboard
+    </div>
+
+    <nav class="tabs-nav">
+      <button
+        [class.active]="activeTab === 'pending'"
+        (click)="activeTab = 'pending'">
+        ⏳ Pending Approvals
+      </button>
+      <button
+        [class.active]="activeTab === 'users'"
+        (click)="activeTab = 'users'">
+        👥 Manage Users
+      </button>
+      <button
+        [class.active]="activeTab === 'categories'"
+        (click)="activeTab = 'categories'">
+        📁 Categories & Subcategories
+      </button>
+      <button
+        [class.active]="activeTab === 'stats'"
+        (click)="activeTab = 'stats'">
+        📊 Statistics
+      </button>
+    </nav>
+
+    <div class="user-actions">
+      <div class="profile-display">
+        <div class="avatar">
+          <img [src]="'http://localhost:4000/uploads/profiles/' + currentUser?.profilePicture" alt="Profile Picture">
+        </div>
+        <span class="username">{{ currentUser?.username || 'Admin' }}</span>
+      </div>
+      <button class="btn-logout" (click)="logout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="dashboard-content">
+
+    @if (errorMessage) {
+      <div class="error-message">{{ errorMessage }}</div>
+    }
+
+    @if (successMessage) {
+      <div class="success-message">{{ successMessage }}</div>
+    }
+
+    <!-- 1. TAB: PENDING APPROVALS -->
+    @if (activeTab === 'pending') {
+      <div class="tab-content">
+        <h2>Pending Registration Requests</h2>
+
+        @if (pendingUsers.length === 0) {
+          <p class="no-data">There are no pending registration requests at the moment.</p>
+        } @else {
+          <section class="results-section">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Type</th>
+                  <th>Date Applied</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (user of pendingUsers; track user._id) {
+                  <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td><span class="badge">{{ user.userType }}</span></td>
+                    <td>{{ user.createdAt | slice:0:10 }}</td>
+                    <td class="actions-cell">
+                      <button class="btn-approve" (click)="changeStatus(user._id, 'approved')">Approve</button>
+                      <button class="btn-reject" (click)="changeStatus(user._id, 'rejected')">Reject</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </section>
+        }
+      </div>
+    }
+
+    <!-- 2. TAB: MANAGE USERS -->
+    @if (activeTab === 'users') {
+      <div class="tab-content">
+
+        @if (!editingUser) {
+          <h2>All System Users</h2>
+          @if (allUsers.length === 0) {
+            <p class="no-data">No users found in the system.</p>
+          } @else {
+            <section class="results-section">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Username</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Type</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (user of allUsers; track user._id) {
+                    <tr>
+                      <td>{{ user.username }}</td>
+                      <td>{{ user.firstname }} {{ user.lastname }}</td>
+                      <td>{{ user.email }}</td>
+                      <td><span class="badge">{{ user.userType }}</span></td>
+                      <td class="actions-cell">
+                        <!-- Дугме за измену -->
+                        <button
+                          class="btn-primary"
+                          [disabled]="user.userType === 'admin'"
+                          [class.disabled-btn]="user.userType === 'admin'"
+                          (click)="startEdit(user)">
+                          Edit
+                        </button>
+
+                        <button
+                          class="btn-delete"
+                          [disabled]="user.userType === 'admin'"
+                          [class.disabled-btn]="user.userType === 'admin'"
+                          (click)="deleteUser(user._id!)">
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </section>
+          }
+        } @else {
+          <div class="edit-user-header">
+            <h2>Edit User: {{ editingUser.username }}</h2>
+            <button class="btn-outline" (click)="cancelEdit()">← Back to list</button>
+          </div>
+
+          <div class="profile-section">
+            <form (ngSubmit)="saveUserChanges()" class="profile-form">
+
+              <div class="form-group">
+                <label>Username (Cannot be changed)</label>
+                <input type="text" [value]="editUserData.username" disabled class="disabled-input">
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>First Name</label>
+                  <input type="text" [(ngModel)]="editUserData.firstname" name="firstname" required>
+                </div>
+
+                <div class="form-group">
+                  <label>Last Name</label>
+                  <input type="text" [(ngModel)]="editUserData.lastname" name="lastname" required>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Email</label>
+                  <input type="email" [(ngModel)]="editUserData.email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                  <label>Phone Number</label>
+                  <input type="text" [(ngModel)]="editUserData.phone" name="phone">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Current Profile Picture</label>
+                  <div class="current-avatar-preview" style="margin-bottom: 10px;">
+                    <img [src]="'http://localhost:4000/uploads/profiles/' + editUserData.profilePicture" alt="User Avatar">
+                  </div>
+
+                  <!-- Приказујемо опцију за брисање само ако корисник ВЕЋ НЕМА default слику -->
+                  @if (editUserData.profilePicture !== 'default_profile_image.jpg') {
+                    <div class="checkbox-group">
+                      <input type="checkbox" id="removePic" [(ngModel)]="editUserData.removePicture" name="removePicture">
+                      <label for="removePic" class="checkbox-label">Remove picture and set to default</label>
+                    </div>
+                  } @else {
+                    <small class="hint">User is using the default profile picture.</small>
+                  }
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn-primary btn-save">💾 Save Changes</button>
+                <button type="button" class="btn-outline btn-cancel" (click)="cancelEdit()">Cancel</button>
+              </div>
+            </form>
+          </div>
+        }
+
+      </div>
+    }
+
+    <!-- 3. TAB: CATEGORIES & SUBCATEGORIES -->
+    @if (activeTab === 'categories') {
+      <div class="tab-content">
+        <h2>Manage Categories & Subcategories</h2>
+
+        <div class="category-forms-grid">
+          <div class="category-form-box">
+            <h3>Add New Category</h3>
+            <div class="form-group-inline">
+              <input type="text" [(ngModel)]="newCategoryName" placeholder="Category name...">
+              <button class="btn-primary" (click)="addCategory()">Add Category</button>
+            </div>
+          </div>
+
+          <div class="category-form-box">
+            <h3>Add Subcategory</h3>
+            <div class="form-group-inline">
+              <select [(ngModel)]="selectedCategoryForSub">
+                <option value="" disabled selected>Select category</option>
+                @for (cat of allCategories; track cat._id) {
+                  <option [value]="cat.name">{{ cat.name }}</option>
+                }
+              </select>
+              <input type="text" [(ngModel)]="newSubcategoryName" placeholder="Subcategory name...">
+              <button class="btn-primary" (click)="addSubcategory()">Add Sub</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="categories-preview">
+          <h3>Existing Categories Structure</h3>
+          <div class="category-cards-grid">
+            @for (cat of allCategories; track cat._id) {
+              <div class="category-card">
+                <h4>{{ cat.name }}</h4>
+                <ul class="subcat-list">
+                  @for (sub of cat.subcategories; track sub) {
+                    <li>{{ sub }}</li>
+                  } @empty {
+                    <li class="text-muted">No subcategories</li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        </div>
+
+      </div>
+    }
+
+    <!-- 4. TAB: STATISTICS -->
+    @if (activeTab === 'stats') {
+      <div class="tab-content fade-in">
+        <app-admin-stats-component></app-admin-stats-component>
+      </div>
+    }
+  </main>
+
+  @if (activeTab !== 'stats') {
+    <footer style="margin-top: 20px; padding: 20px 0; border-top: 1px solid #edf2f7; text-align: center; color: #718096; font-size: 14px; background-color: #f7fafc; border-radius: 8px;">
+      <p style="margin: 0;">&copy; 2026 PIA. All rights reserved.</p>
+    </footer>
+  }
+</div>
+
+@if (activeTab === 'stats') {
+  <footer style="margin-top: 20px; padding: 20px 0; border-top: 1px solid #edf2f7; text-align: center; color: #718096; font-size: 14px; background-color: #f7fafc; border-radius: 8px;">
+    <p style="margin: 0;">&copy; 2026 PIA. All rights reserved.</p>
+  </footer>
+}

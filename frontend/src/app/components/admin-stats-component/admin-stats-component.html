@@ -1,0 +1,24 @@
+<div class="stats-container">
+  <h2 class="stats-title">Admin Dashboard - Stats</h2>
+
+  <div class="charts-grid">
+
+    <div class="chart-card">
+      <h3 class="chart-heading">Revenue (3 months)</h3>
+      <canvas baseChart
+              [data]="barChartData"
+              [options]="barChartOptions"
+              type="bar">
+      </canvas>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-heading">Top Selling Products (1 month)</h3>
+      <canvas baseChart
+              [data]="pieChartData"
+              [options]="pieChartOptions"
+              type="pie">
+      </canvas>
+    </div>
+  </div>
+</div>

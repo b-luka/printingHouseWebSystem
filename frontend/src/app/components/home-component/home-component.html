@@ -1,0 +1,89 @@
+<div class="home-container">
+
+  <!-- Top Navigation / Header -->
+  <header class="top-nav">
+    <div class="logo">
+      <span>🖨️</span> Print Portal
+    </div>
+    <div class="nav-actions">
+      <button class="btn-login" (click)="goToLogin()">Login / Register</button>
+    </div>
+  </header>
+
+  <!-- Stats Section -->
+  <section class="stats-banner">
+    <h2>Welcome to the Printing House Portal</h2>
+    <p>Total Registered Printing Houses: <strong>{{ printersCount }}</strong></p>
+  </section>
+
+  <!-- Top 5 Products Section -->
+  <section class="top-products">
+    <h3>Top 5 Highest Rated Products</h3>
+    <div class="cards-grid">
+      @for (product of topProducts; track product._id) {
+        <div class="product-card" (click)="viewDetails(product._id)">
+          <img [src]="'http://localhost:4000/uploads/products/' + product.imageUrl" alt="{{ product.name }}">
+          <h4>{{ product.name }}</h4>
+          <p class="likes">👍 {{ product.likes }} Likes</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Search Section -->
+  <section class="search-section">
+    <h3>Search Products</h3>
+    <form class="search-form" (ngSubmit)="search()">
+      <input type="text" [(ngModel)]="searchName" name="searchName" placeholder="Product name (e.g., Pen, Polo Shirt...)">
+
+      <select [(ngModel)]="searchCategory" name="searchCategory">
+        @for (cat of categories; track cat) {
+          <option [value]="cat">{{ cat }}</option>
+        }
+      </select>
+
+      <button type="submit" class="btn-search">Search</button>
+    </form>
+  </section>
+
+  <!-- Results Table -->
+  <section class="results-section">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <!-- Clickable header for sorting -->
+          <th (click)="toggleSort()" class="sortable">
+            Product Name
+            <span>{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+          </th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Stock</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of searchResults; track item._id) {
+          <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.category }}</td>
+            <td>{{ item.unitPrice }} RSD</td>
+            <td>{{ item.stockQuantity }}</td>
+            <td>
+              <button class="btn-details" (click)="viewDetails(item._id)">DETAILS</button>
+            </td>
+          </tr>
+        }
+        @if (searchResults.length === 0) {
+          <tr>
+            <td colspan="5" class="text-center">No products found.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+
+  <footer style="margin-top: 20px; padding: 20px 0; border-top: 1px solid #edf2f7; text-align: center; color: #718096; font-size: 14px; background-color: #f7fafc; border-radius: 8px;">
+    <p style="margin: 0;">&copy; 2026 PIA. All rights reserved.</p>
+  </footer>
+</div>

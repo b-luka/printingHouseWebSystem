@@ -1,0 +1,371 @@
+<div class="dashboard-container">
+
+  <!-- Header / Navigation -->
+  <header class="dashboard-header">
+    <div class="logo">
+      <span>🖨️</span> User Dashboard
+    </div>
+
+    <nav class="tabs-nav">
+      <button
+        [class.active]="activeTab === 'catalog'"
+        (click)="activeTab = 'catalog'">
+        🛒 Catalog
+      </button>
+      <button
+        [class.active]="activeTab === 'cart'"
+        (click)="activeTab = 'cart'">
+        🛍️ My Cart
+      </button>
+
+      @if (currentUser?.userType === 'client_legal') {
+        <button [class.active]="activeTab === 'procurements'" (click)="activeTab = 'procurements'">
+          🏛️ Public Procurements
+        </button>
+      }
+    </nav>
+
+    <div class="user-actions">
+      <div class="profile-menu" (click)="toggleDropdown()">
+        <div class="avatar">
+          <img [src]="'http://localhost:4000/uploads/profiles/' + currentUser?.profilePicture" alt="Profile Picture">
+        </div>
+        <span class="username">{{ currentUser?.username || 'User' }}</span>
+        <span class="dropdown-arrow">▼</span>
+
+        @if (isDropdownOpen) {
+          <div class="dropdown-content">
+            <button class="dropdown-item" (click)="activeTab = 'profile'">
+              ⚙️ Account Info
+            </button>
+            <div class="divider"></div>
+            <button class="dropdown-item text-danger" (click)="logout()">
+              🚪 Logout
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="dashboard-content">
+
+    @if (activeTab === 'catalog') {
+      <div class="tab-content">
+        <h2>Product Catalog</h2>
+
+        <!-- Search Section -->
+        <section class="search-section">
+          <form class="search-form" (ngSubmit)="search()">
+            <input type="text" [(ngModel)]="searchName" name="searchName" placeholder="Product name (e.g., Pen, Polo Shirt...)">
+
+            <select [(ngModel)]="searchCategory" name="searchCategory">
+              @for (cat of categories; track cat) {
+                <option [value]="cat">{{ cat }}</option>
+              }
+            </select>
+
+            <button type="submit" class="btn-search">Search</button>
+          </form>
+        </section>
+
+        <!-- Results Table -->
+        <section class="results-section">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th (click)="toggleSort()" class="sortable">
+                  Product Name
+                  <span>{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+                </th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of searchResults; track item._id) {
+                <tr>
+                  <td>{{ item.name }}</td>
+                  <td>{{ item.category }}</td>
+                  <td>{{ item.unitPrice }} RSD</td>
+                  <td>
+                    <span [class.text-danger]="item.stockQuantity < 10">{{ item.stockQuantity }}</span>
+                  </td>
+                  <td class="actions-cell">
+                    <button class="btn-details" (click)="viewDetails(item._id)">DETAILS</button>
+                  </td>
+                </tr>
+              }
+              @if (searchResults.length === 0) {
+                <tr>
+                  <td colspan="5" class="text-center">No products found.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      </div>
+    }
+
+    @if (activeTab === 'cart') {
+      <div class="tab-content">
+        <h2>Shopping Cart</h2>
+
+        @if (cartItems.length === 0) {
+          <div class="empty-cart-message">
+            <p>Your cart is currently empty.</p>
+            <button class="btn-primary" (click)="activeTab = 'catalog'">Browse Products</button>
+          </div>
+        } @else {
+          <section class="results-section">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Print Service</th>
+                  <th>Unit Price</th>
+                  <th>Quantity</th>
+                  <th>Total</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of cartItems; track item.product._id + (item.selectedServiceId || '')) {
+                  <tr>
+                    <td>{{ item.product.name }}</td>
+                    <td><span class="badge">{{ getServiceName(item) }}</span></td>
+                    <td>{{ getItemUnitPrice(item) }} RSD</td>
+                    <td>
+                      <input
+                        type="number"
+                        [value]="item.quantity"
+                        (change)="updateQuantity(item, $event)"
+                        min="1"
+                        class="quantity-input">
+                    </td>
+                    <td><strong>{{ getItemUnitPrice(item) * item.quantity }} RSD</strong></td>
+                    <td>
+                      <button class="btn-danger" (click)="removeFromCart(item)">❌ Remove</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </section>
+
+          <div class="cart-summary">
+            <div class="total-box">
+              <h3>Cart Total: <span class="highlight">{{ cartTotal }} RSD</span></h3>
+
+              @if (currentUser?.userType === 'client_legal') {
+                <button class="btn-primary btn-large" (click)="startProcurement()">START PUBLIC PROCUREMENT ➡️</button>
+              } @else {
+                <button class="btn-primary btn-large" (click)="checkout()">CONFIRM ORDER ➡️</button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    @if (activeTab === 'profile') {
+      <div class="tab-content fade-in">
+        <h2>Account Settings</h2>
+
+        <div class="profile-section">
+          @if (profileUpdateMessage) {
+            <div class="success-message">{{ profileUpdateMessage }}</div>
+          }
+
+          <form (ngSubmit)="updateProfile()" class="profile-form">
+            <div class="form-group image-upload-group">
+              <label>Profile Picture</label>
+              <div class="current-avatar-preview">
+                <img [src]="'http://localhost:4000/uploads/profiles/' + currentUser?.profilePicture" alt="Current Avatar" onerror="this.src='assets/default_profile.jpg'">
+              </div>
+              <input type="file" (change)="onProfileImageSelected($event)" accept="image/*">
+            </div>
+
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" [value]="editProfileData.username" disabled class="disabled-input">
+              <small class="hint">Username cannot be changed.</small>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>First Name</label>
+                <input type="text" [(ngModel)]="editProfileData.firstname" name="firstname" required>
+              </div>
+              <div class="form-group">
+                <label>Last Name</label>
+                <input type="text" [(ngModel)]="editProfileData.lastname" name="lastname" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" [(ngModel)]="editProfileData.email" name="email" required>
+              </div>
+              <div class="form-group">
+                <label>Phone Number</label>
+                <input type="text" [(ngModel)]="editProfileData.phone" name="phone" required>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-primary btn-save">💾 Save Changes</button>
+          </form>
+        </div>
+
+        <div style="margin-top: 50px;">
+          <h2 style="border-bottom: 2px solid #edf2f7; padding-bottom: 10px; color: #2d3748;">Order History</h2>
+
+          @if (orders.length === 0) {
+            <div class="empty-cart-message" style="margin-top: 20px;">
+              <p>You have no previous orders.</p>
+              <button class="btn-primary" (click)="activeTab = 'catalog'">Browse catalog</button>
+            </div>
+          } @else {
+            <section class="results-section" style="margin-top: 20px;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th (click)="toggleOrderSort('createdAt')" class="sortable">
+                      Invoice ID <span>{{ orderSortField === 'createdAt' ? (orderSortDirection === 'asc' ? '▲' : '▼') : '↕' }}</span>
+                    </th>
+                    <th (click)="toggleOrderSort('printer')" class="sortable">
+                      Printer <span>{{ orderSortField === 'printer' ? (orderSortDirection === 'asc' ? '▲' : '▼') : '↕' }}</span>
+                    </th>
+                    <th>City</th>
+                    <th>Products (Qty)</th>
+                    <th (click)="toggleOrderSort('totalAmount')" class="sortable">
+                      Total <span>{{ orderSortField === 'totalAmount' ? (orderSortDirection === 'asc' ? '▲' : '▼') : '↕' }}</span>
+                    </th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (order of orders; track order._id) {
+                    <tr [style.opacity]="order.status === 'canceled' ? '0.6' : '1'">
+                      <td><strong>{{ order._id | uppercase | slice:-8 }}</strong></td>
+                      <td>{{ order.printerId.institutionName || 'Unknown Printer' }}</td>
+                      <td>{{ order.printerId.city || 'Unknown City' }}</td>
+                      <td>
+                        <ol style="margin: 0; padding-left: 15px; font-size: 13px;">
+                          @for (item of order.items; track item.productId) {
+                            <li>{{ item.productName }} ({{ item.quantity }} pcs.)</li>
+                          }
+                        </ol>
+                      </td>
+                      <td><strong>{{ order.totalAmount }} RSD</strong></td>
+                      <td>
+                        <span class="status-badge"
+                              [ngClass]="{
+                                'ordered': order.status === 'ordered',
+                                'active-bid': order.status === 'in_printing'
+                              }"
+                              [style.background-color]="order.status === 'delivered' ? '#c6f6d5' : (order.status === 'canceled' ? '#fed7d7' : '#bee3f8')"
+                              [style.color]="order.status === 'delivered' ? '#22543d' : (order.status === 'canceled' ? '#9b2c2c' : '#2b6cb0')"
+                              [style.border-color]="order.status === 'delivered' ? '#9ae6b4' : (order.status === 'canceled' ? '#fc8181' : '#cbd5e0')">
+                          {{ order.status | uppercase }}
+                        </span>
+                      </td>
+                      <td>
+                        <button class="btn-danger"
+                                (click)="cancelOrder(order._id)"
+                                [disabled]="order.status !== 'ordered'"
+                                [style.opacity]="order.status !== 'ordered' ? '0.4' : '1'"
+                                [style.cursor]="order.status !== 'ordered' ? 'not-allowed' : 'pointer'">
+                          Cancel
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </section>
+          }
+        </div>
+      </div>
+    }
+
+    @if (activeTab === 'procurements') {
+      <div class="tab-content">
+        <h2>My Procurements</h2>
+
+        @if (procurements.length === 0) {
+          <div class="empty-cart-message">
+            <p>No active public procurements.</p>
+            <button class="btn-primary" (click)="activeTab = 'catalog'">Browse catalog</button>
+          </div>
+        } @else {
+          <div class="orders-list">
+            @for (proc of procurements; track proc._id) {
+              <div class="order-card">
+                <div class="order-header">
+                  <div class="order-info">
+                    <span class="order-id">Procurement ID: {{ proc._id.substring(proc._id.length - 8) | uppercase }}</span>
+                    <span class="order-date">Created: {{ proc.createdAt | date:'medium' }}</span>
+                  </div>
+                  <div class="order-status">
+                    <span class="status-badge" [class.ordered]="proc.isActive" [class.delivered]="!proc.isActive">
+                      {{ proc.isActive ? 'ACTIVE PROCUREMENT (10min)' : 'COMPLETED' }}
+                    </span>
+                  </div>
+                </div>
+
+                <table class="data-table order-table">
+                  <thead>
+                    <tr>
+                      <th>Category</th>
+                      <th>Product Name</th>
+                      <th>Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of proc.items; track item.name) {
+                      <tr>
+                        <td>{{ item.category }}</td>
+                        <td><strong>{{ item.name }}</strong></td>
+                        <td>{{ item.quantity }} units</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+
+                <div class="order-footer" style="text-align: left;">
+                  <h4>Received Print Offers:</h4>
+                  @if (proc.offers.length === 0) {
+                    <p style="color: #718096; font-style: italic;">No offers yet.</p>
+                  } @else {
+                    <ul style="margin: 5px 0 0 20px;">
+                      @for (offer of proc.offers; track offer._id) {
+                        <li>
+                          <strong>{{ getPrinterName(offer.printerId) }}</strong> -
+                          <span style="color: #3182ce; font-weight: bold;">{{ offer.totalPrice }} RSD</span>
+                          @if (offer.isWinning) {
+                            <span style="color: #38a169; font-weight: bold; margin-left: 10px;">👑 WINNING BID</span>
+                          }
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+  </main>
+
+  <footer style="margin-top: 20px; padding: 20px 0; border-top: 1px solid #edf2f7; text-align: center; color: #718096; font-size: 14px; background-color: #f7fafc; border-radius: 8px;">
+    <p style="margin: 0;">&copy; 2026 PIA. All rights reserved.</p>
+  </footer>
+</div>

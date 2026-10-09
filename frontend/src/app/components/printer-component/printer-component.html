@@ -1,0 +1,474 @@
+<div class="dashboard-container">
+
+  <header class="dashboard-header">
+    <div class="logo">
+      <span>🖨️</span> Printer Dashboard
+    </div>
+
+    <nav class="tabs-nav">
+      <button [class.active]="activeTab === 'add-product'" (click)="activeTab = 'add-product'">
+        ➕ Add Products
+      </button>
+      <button [class.active]="activeTab === 'my-products'" (click)="activeTab = 'my-products'">
+        📦 Stock
+      </button>
+      <button [class.active]="activeTab === 'orders'" (click)="activeTab = 'orders'">
+        📋 Client Orders
+      </button>
+      <button [class.active]="activeTab === 'procurements'" (click)="activeTab = 'procurements'">
+        ⚖️ Procurements
+      </button>
+    </nav>
+
+    <div class="user-actions">
+      <div class="profile-menu" (click)="toggleDropdown()">
+        <div class="avatar">
+          <img [src]="'http://localhost:4000/uploads/profiles/' + (currentUser?.profilePicture || 'default_profile_image.jpg')" alt="Profile Picture" onerror="this.src='assets/default_profile.jpg'">
+        </div>
+        <span class="username">{{ currentUser?.institutionName || currentUser?.username || 'Printer' }}</span>
+        <span class="dropdown-arrow">▼</span>
+
+        @if (isDropdownOpen) {
+          <div class="dropdown-content">
+            <button class="dropdown-item" (click)="activeTab = 'profile'">
+              ⚙️ Account Settings
+            </button>
+            <div class="divider"></div>
+            <button class="dropdown-item text-danger" (click)="logout()">
+              🚪 Logout
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  </header>
+
+  <main class="dashboard-content">
+    @if (activeTab === 'profile') {
+      <div class="tab-content fade-in">
+        <h2>Account Settings</h2>
+
+        @if (profileUpdateMessage) {
+          <div style="background-color: #c6f6d5; color: #276749; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-weight: bold;">
+            {{ profileUpdateMessage }}
+          </div>
+        }
+
+        <div class="profile-section">
+          <form class="profile-form">
+            <form class="profile-form">
+            <div class="form-group image-upload-group">
+              <label>Profile Picture</label>
+              <div class="current-avatar-preview">
+                <img [src]="'http://localhost:4000/uploads/profiles/' + (currentUser?.profilePicture || 'default_profile_image.jpg')" alt="Current Avatar" style="width: 80px; height: 80px; border-radius: 50%;">
+              </div>
+              <input type="file" (change)="onProfilePicSelected($event)" accept="image/*">
+            </div>
+
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" [value]="currentUser?.username" disabled class="disabled-input form-control">
+              <small class="hint" style="color: #718096; font-size: 12px;">Username cannot be changed.</small>
+            </div>
+
+            <div class="form-row" style="display: flex; gap: 20px;">
+              <div class="form-group" style="flex: 1;">
+                <label>First Name</label>
+                <input type="text" [(ngModel)]="currentUser!.firstname" name="firstname" class="form-control" required>
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label>Last Name</label>
+                <input type="text" [(ngModel)]="currentUser!.lastname" name="lastname" class="form-control" required>
+              </div>
+            </div>
+
+            <div class="form-row" style="display: flex; gap: 20px;">
+              <div class="form-group" style="flex: 1;">
+                <label>Email</label>
+                <input type="email" [(ngModel)]="currentUser!.email" name="email" class="form-control" required>
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label>Phone Number</label>
+                <input type="text" [(ngModel)]="currentUser!.phone" name="phone" class="form-control" required>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; margin: 25px 0 15px 0;">
+              <hr style="flex: 1; border: 0; border-top: 1px solid #e2e8f0;">
+              <span style="padding: 0 15px; color: #a0aec0; font-weight: bold; font-size: 14px;">COMPANY DETAILS</span>
+              <hr style="flex: 1; border: 0; border-top: 1px solid #e2e8f0;">
+            </div>
+
+            <div class="form-group">
+              <label>Institution / Printer Name</label>
+              <input type="text" [(ngModel)]="currentUser!.institutionName" name="institutionName" class="form-control">
+            </div>
+
+            <div class="form-row" style="display: flex; gap: 20px;">
+              <div class="form-group" style="flex: 2;">
+                <label>Headquarters Address</label>
+                <input type="text" [(ngModel)]="currentUser!.headquartersAddress" name="headquartersAddress" class="form-control">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label>City</label>
+                <input type="text" [(ngModel)]="currentUser!.city" name="city" class="form-control">
+              </div>
+            </div>
+
+            <div class="form-row" style="display: flex; gap: 20px;">
+              <div class="form-group" style="flex: 1;">
+                <label>Registration Number (MB)</label>
+                <input type="text" [(ngModel)]="currentUser!.registrationNumber" name="registrationNumber" class="form-control">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label>Tax ID (PIB)</label>
+                <input type="text" [(ngModel)]="currentUser!.taxId" name="taxId" class="form-control">
+              </div>
+            </div>
+
+            <button type="button" class="btn-primary btn-save" style="margin-top: 15px; width: 100%; font-size: 16px; padding: 12px;" (click)="updateProfile()">💾 Save Changes</button>
+          </form>
+          </form>
+        </div>
+      </div>
+    }
+
+    @if (activeTab === 'add-product') {
+      <div class="tab-content fade-in">
+        <h2>Add Products & Services</h2>
+
+        <div class="json-upload-box" style="background: #f7fafc; padding: 20px; border: 2px dashed #cbd5e0; text-align: center; border-radius: 8px;">
+          <h3>Import from JSON</h3>
+          <p>Upload a JSON file to bulk import your stock (products and services).</p>
+          <input type="file" accept=".json" (change)="onJsonUpload($event)" class="form-control" style="max-width: 300px; margin: 10px auto;">
+        </div>
+
+        <div style="display: flex; align-items: center; margin: 25px 0;">
+          <hr style="flex: 1; border: 0; border-top: 1px solid #e2e8f0;">
+          <span style="padding: 0 15px; color: #a0aec0; font-weight: bold; font-size: 14px;">OR ADD MANUALLY</span>
+          <hr style="flex: 1; border: 0; border-top: 1px solid #e2e8f0;">
+        </div>
+
+        <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div class="form-group">
+            <label>Category</label>
+            <select [(ngModel)]="newProduct.category" (change)="onCategoryChange()" class="form-control">
+              <option value="">-- Select Category --</option>
+              @for (cat of availableCategories; track cat) {
+                <option [value]="cat">{{ cat }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Subcategory</label>
+            <select [(ngModel)]="newProduct.subcategory" class="form-control" [disabled]="!newProduct.category">
+              <option value="">-- Select Subcategory --</option>
+              @for (sub of availableSubcategories; track sub) {
+                <option [value]="sub">{{ sub }}</option>
+              }
+            </select>
+          </div>
+
+         <div class="form-group" style="display: flex; gap: 10px;">
+            <div style="flex: 2;">
+              <label>Product Name</label>
+              <input type="text" [(ngModel)]="newProduct.name" class="form-control">
+            </div>
+            <div style="flex: 1;">
+              <label>Product Code</label>
+              <input type="text" [(ngModel)]="newProduct.code" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group" style="display: flex; gap: 10px;">
+            <div style="flex: 1;">
+              <label>Unit Price (RSD)</label>
+              <input type="number" [(ngModel)]="newProduct.unitPrice" class="form-control">
+            </div>
+            <div style="flex: 1;">
+              <label>Stock Quantity</label>
+              <input type="number" [(ngModel)]="newProduct.stockQuantity" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group" style="grid-column: span 2;">
+            <label>Description</label>
+            <textarea [(ngModel)]="newProduct.description" class="form-control" rows="2"></textarea>
+          </div>
+
+          <div class="form-group" style="grid-column: span 2;">
+            <label>Product Image</label>
+            <input type="file" (change)="onProductImageSelected($event)" accept="image/*" class="form-control">
+          </div>
+        </div>
+
+        <div class="services-box" style="margin-top: 25px; background: #fffaf0; padding: 20px; border: 1px solid #feebc8; border-radius: 8px;">
+          <h4 style="margin-top: 0; color: #c05621; margin-bottom: 15px;">Additional Print Services</h4>
+          <div style="display: flex; gap: 15px; align-items: flex-end;">
+            <div class="form-group" style="flex:2">
+              <label>Print Type (e.g., Transfer, Engraving)</label>
+              <input type="text" [(ngModel)]="newService.printType" class="form-control">
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>Additional Price (+RSD)</label>
+              <input type="number" [(ngModel)]="newService.additionalPricePerPiece" class="form-control">
+            </div>
+            <button class="btn-secondary" (click)="addServiceToProduct()" style="margin-bottom: 15px;">+ Add Service</button>
+          </div>
+
+          @if (newProduct.printServices && newProduct.printServices.length > 0) {
+            <ul style="list-style: none; padding: 0; margin-top: 15px;">
+              @for (serv of newProduct.printServices; track serv.printType; let i = $index) {
+                <li style="display: flex; justify-content: space-between; padding: 10px; background: white; border: 1px solid #feebc8; border-radius: 6px; margin-bottom: 5px;">
+                  <span><b>{{ serv.printType }}</b> (+{{ serv.additionalPricePerPiece }} RSD)</span>
+                  <button (click)="removeService(i)" class="btn-danger" style="padding: 2px 8px;">✖</button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+
+        <button class="btn-primary" style="margin-top: 25px; width: 100%; font-size: 16px; padding: 12px;" (click)="submitNewProduct()">✅ Save Product</button>
+      </div>
+    }
+
+    @if (activeTab === 'my-products') {
+      <div class="tab-content fade-in">
+        <h2>Stock Management</h2>
+
+        <section class="results-section">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Product Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Current Stock</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (product of myProducts; track product._id) {
+                <tr>
+                  <td><strong>{{ product.name }}</strong></td>
+                  <td>{{ product.category }} &gt; {{ product.subcategory }}</td>
+                  <td>{{ product.unitPrice }} RSD</td>
+                  <td>
+                    <input type="number" [(ngModel)]="product.stockQuantity" class="form-control" style="width: 100px; display: inline-block;">
+                  </td>
+                  <td>
+                    <button class="btn-primary" (click)="updateStock(product._id, product.stockQuantity)">Update</button>
+                  </td>
+                </tr>
+              }
+              @if (myProducts.length === 0) {
+                <tr>
+                  <td colspan="5" style="text-align: center; color: #718096; padding: 20px;">Nemate dodatih proizvoda.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      </div>
+    }
+
+    @if (activeTab === 'orders') {
+      <div class="tab-content fade-in">
+        <h2>Client Orders</h2>
+
+        @if (myOrders.length === 0) {
+          <div class="empty-cart-message">
+            <p>No client orders at the moment.</p>
+          </div>
+        } @else {
+          <div class="orders-list">
+            @for (order of myOrders; track order._id) {
+              <div class="order-card">
+                <div class="order-header">
+                  <div class="order-info">
+                    <span class="order-id">Order: {{ order._id | uppercase | slice:-8 }}</span>
+                    <span class="order-date">Date: {{ order.createdAt | date:'medium' }}</span>
+                  </div>
+                  <div class="printer-info">
+                    <strong>Client:</strong> {{ order.clientId?.firstname }} {{ order.clientId?.lastname }}
+                    <div style="font-size: 12px; color: #718096; margin-top: 4px;">📞 {{ order.clientId?.phone }}</div>
+                  </div>
+                  <div class="order-status">
+                    <span class="status-badge"
+                          [ngClass]="{
+                            'ordered': order.status === 'ordered',
+                            'active-bid': order.status === 'in_printing'
+                          }"
+                          [style.background-color]="order.status === 'delivered' ? '#c6f6d5' : ''"
+                          [style.color]="order.status === 'delivered' ? '#22543d' : ''"
+                          [style.border-color]="order.status === 'delivered' ? '#9ae6b4' : ''">
+                      {{ order.status | uppercase }}
+                    </span>
+                  </div>
+                </div>
+
+                <table class="data-table order-table">
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th>Color</th>
+                      <th>Quantity</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of order.items; track item.productName) {
+                      <tr>
+                        <td>
+                          <strong>{{ item.productName }}</strong><br>
+                          <small style="color: #718096;">Print: {{ item.printTypeName }}</small>
+                        </td>
+                        <td>{{ item.color }}</td>
+                        <td>{{ item.quantity }} pcs.</td>
+                        <td>{{ item.itemTotalPrice }} RSD</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+
+                <div class="order-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                  <h3>TOTAL: <span class="highlight">{{ order.totalAmount }} RSD</span></h3>
+
+                  <div style="display: flex; gap: 10px;">
+                    @if (order.status === 'ordered') {
+                      <button class="btn-primary" (click)="changeOrderStatus(order._id, 'in_printing')">Mark "In Printing"</button>
+                    }
+                    @if (order.status === 'ordered' || order.status === 'in_printing') {
+                      <button class="btn-success" (click)="changeOrderStatus(order._id, 'delivered')">Mark "Delivered"</button>
+                    }
+                    @if (order.status === 'delivered') {
+                      <span style="color: #38a169; font-weight: bold; padding: 10px;">✅ Delivered</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    @if (activeTab === 'procurements') {
+      <div class="tab-content fade-in">
+        <h2>Active Procurements (Bidding)</h2>
+
+        @if (activeProcurements.length === 0) {
+          <div class="empty-cart-message">
+            <p>No active procurements to bid on at the moment.</p>
+          </div>
+        } @else {
+          <div class="orders-list">
+            @for (proc of activeProcurements; track proc._id) {
+              <div class="order-card">
+                <div class="order-header" style="background: #ebf8ff;">
+                  <div class="order-info">
+                    <span class="order-id">Procurement ID: {{ proc._id.substring(proc._id.length - 8) | uppercase }}</span>
+                    <span class="order-date">Opened: {{ proc.createdAt | date:'medium' }}</span>
+                  </div>
+                  <div class="printer-info">
+                    <strong>Client:</strong> {{ getClientName(proc.clientLegalId) }}
+                  </div>
+                  <div class="order-status">
+                    <span class="status-badge active-bid" style="background: #e6fffa; color: #319795; border: 1px solid #81e6d9;">ACTIVE (10 MIN)</span>
+                  </div>
+                </div>
+
+                <table class="data-table order-table">
+                  <thead>
+                    <tr>
+                      <th>Category</th>
+                      <th>Product Name</th>
+                      <th>Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of proc.items; track item.name) {
+                      <tr>
+                        <td>{{ item.category }}</td>
+                        <td><strong>{{ item.name }}</strong></td>
+                        <td>{{ item.quantity }} pcs.</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+
+                <div class="order-footer" style="background: #fffaf0; display: flex; justify-content: space-between; align-items: center;">
+                  <label style="font-weight: bold; color: #c05621;">Your Total Bid (RSD):</label>
+                  <div style="display: flex; gap: 10px;">
+                    <input type="number" [(ngModel)]="bidAmounts[proc._id]" placeholder="Enter amount..." class="form-control" style="width: 200px; font-weight: bold;">
+                    <button class="btn-primary" (click)="submitBid(proc._id)">SUBMIT BID</button>
+                    <button class="btn-secondary" (click)="downloadReport(proc._id)" style="display: flex; align-items: center; gap: 5px;">
+                      📄 PDF Report
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <div style="margin-top: 40px; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
+          <h3 style="color: #4a5568; margin: 0;">Past Procurements</h3>
+        </div>
+
+        @if (pastProcurements.length === 0) {
+          <p style="color: #718096; font-style: italic;">No past procurements.</p>
+        } @else {
+          <div class="orders-list">
+            @for (proc of pastProcurements; track proc._id) {
+              <div class="order-card" style="opacity: 0.85;">
+                <div class="order-header" style="background: #f7fafc;">
+                  <div class="order-info">
+                    <span class="order-id">Procurement ID: {{ proc._id.substring(proc._id.length - 8) | uppercase }}</span>
+                    <span class="order-date">Closed: {{ proc.createdAt | date:'medium' }}</span>
+                  </div>
+                  <div class="printer-info">
+                    <strong>Client:</strong> {{ getClientName(proc.clientLegalId) }}
+                  </div>
+                  <div class="order-status">
+                    <span class="status-badge" style="background: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0;">CLOSED</span>
+                  </div>
+                </div>
+
+                <table class="data-table order-table">
+                  <thead>
+                    <tr>
+                      <th>Category</th>
+                      <th>Product Name</th>
+                      <th>Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of proc.items; track item.name) {
+                      <tr>
+                        <td>{{ item.category }}</td>
+                        <td><strong>{{ item.name }}</strong></td>
+                        <td>{{ item.quantity }} pcs.</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+
+                <div class="order-footer" style="background: #f7fafc; display: flex; justify-content: flex-end; align-items: center;">
+                  <button class="btn-secondary" (click)="downloadReport(proc._id)" style="display: flex; align-items: center; gap: 5px; font-weight: bold;">
+                    📄 PDF Report
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+  </main>
+
+  <footer style="margin-top: 20px; padding: 20px 0; border-top: 1px solid #edf2f7; text-align: center; color: #718096; font-size: 14px; background-color: #f7fafc; border-radius: 8px;">
+    <p style="margin: 0;">&copy; 2026 PIA. All rights reserved.</p>
+  </footer>
+</div>

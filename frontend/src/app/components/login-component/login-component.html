@@ -1,0 +1,36 @@
+<div class = 'login-container'>
+  <div class = 'login-box'>
+    <a routerLink = '/' class = 'btn-back'>⬅ Back to Home</a>
+
+    <h2>Log into Printing House</h2>
+
+    @if (message) {
+      <div class = 'error-message'>
+        {{message}}
+      </div>
+    }
+
+    <form (ngSubmit) = 'login()'>
+      <div class = 'form-group'>
+        <label for = 'username'>Username:</label>
+        <input type = 'text' id = 'username' name = 'username' [(ngModel)] = 'username' required placeholder = 'Enter username...'>
+      </div>
+
+      <div class = 'form-group'>
+        <label for = 'password'>Password:</label>
+        <input type = 'password' id = 'password' name = 'password' [(ngModel)] = 'password' required placeholder = 'Enter password...'>
+      </div>
+
+      <button type = 'submit' class = 'btn-submit'>Log in</button>
+
+      <p class = 'register-link'>
+        Don't have an account? <a routerLink = '/register'>Register here</a>
+      </p>
+    </form>
+  </div>
+
+</div>
+
+<footer style="position: fixed; bottom: 0; left: 0; width: 100%; padding: 20px 0; border-top: 1px solid #edf2f7; text-align: center; color: #718096; font-size: 14px; background-color: #f7fafc; border-radius: 8px;">
+  <p style="margin: 0;">&copy; 2026 PIA. All rights reserved.</p>
+</footer>

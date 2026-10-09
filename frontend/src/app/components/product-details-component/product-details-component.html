@@ -1,0 +1,207 @@
+@if (product) {
+  <div class="details-container">
+
+    <div style="margin-bottom: 15px;">
+      <button (click)="goBackToHome()" class="btn-back">⬅ Back to catalog</button>
+    </div>
+
+    @if (currentStep === 'details') {
+      <div class="details-card">
+
+        <div class="gallery-section">
+          <div class="main-image-container">
+            <img [src]="'http://localhost:4000/uploads/products/' + mainImage" alt="Product Image" class="main-image">
+          </div>
+          <div class="thumbnails-row">
+            @for (img of allImages; track img) {
+              <img
+                [src]="'http://localhost:4000/uploads/products/' + img"
+                class="thumbnail"
+                [class.active]="mainImage === img"
+                (click)="setMainImage(img)"
+                alt="Thumbnail">
+            }
+          </div>
+        </div>
+
+        <div class="info-section">
+          <h1>{{ product.name }}</h1>
+          <p class="category">{{ product.category }} > {{ product.subcategory }}</p>
+
+          <div class="printer-info">
+            <p><strong>Printer:</strong> {{ getPrinterData()?.institutionName || 'Н/А' }}</p>
+            <p><strong>Address:</strong> {{ getPrinterData()?.headquartersAddress || '' }}, {{ getPrinterData()?.city || '' }}</p>
+
+            <div class="map-container">
+              <iframe
+                [src]="getMapUrl()"
+                width="100%"
+                height="180"
+                style="border:0; border-radius: 8px; margin-top: 10px;"
+                allowfullscreen=""
+                loading="lazy">
+              </iframe>
+            </div>
+          </div>
+
+          <p class="description">{{ product.description }}</p>
+
+          @if (isClient) {
+            <div class="form-group" style="margin-top: 15px;">
+              <label><strong>Color:</strong></label>
+              <select [(ngModel)]="selectedColor" class="custom-select">
+                @if (product.availableColors && product.availableColors.length > 0) {
+                  @for (color of product.availableColors; track color) {
+                    <option [value]="color">{{ color }}</option>
+                  }
+                } @else {
+                  <option value="White">White (Default)</option>
+                }
+              </select>
+            </div>
+          }
+
+          @if (product.printServices && product.printServices.length > 0 && isClient) {
+            <div class="print-services-section">
+              <h3>Additional print services</h3>
+              <div class="services-list">
+                @for (service of product.printServices; track service._id) {
+                  <label class="service-item">
+                    <input type="radio" name="selectedService" [value]="service._id" [(ngModel)]="selectedServiceId">
+                    <div class="service-details">
+                      <strong>{{ service.printType }}</strong>
+                      <span class="service-price"> +{{ service.additionalPricePerPiece }} RSD / piece</span> <br>
+                      <small class="service-dimensions">Max dimensions: {{ service.maxWidthMm }}mm x {{ service.maxHeightMm }}mm</small>
+                    </div>
+                  </label>
+                }
+              </div>
+            </div>
+          }
+
+          <div class="price-stock">
+            <span class="price">{{ product.unitPrice }} RSD</span>
+            <span class="stock" [class.low-stock]="product.stockQuantity < 10">
+              Stock: {{ product.stockQuantity }}
+            </span>
+          </div>
+
+          @if (isClient) {
+            <button class="btn-primary btn-next" (click)="goToPreparation()">
+              NEXT ➡️
+            </button>
+          }
+
+          <div class="social-stats">
+            @if (currentUser) {
+              <button class="btn-vote like" [class.active]="product.likedBy?.includes(currentUser?._id)" (click)="toggleLike()">
+                👍 {{ product.likes || 0 }}
+              </button>
+              <button class="btn-vote dislike" [class.active]="product.dislikedBy?.includes(currentUser?._id)" (click)="toggleDislike()">
+                👎 {{ product.dislikes || 0 }}
+              </button>
+            } @else {
+              <span class="btn-vote like" style="cursor: default; opacity: 0.8;">
+                👍 {{ product.likes || 0 }}
+              </span>
+              <span class="btn-vote dislike" style="cursor: default; opacity: 0.8;">
+                👎 {{ product.dislikes || 0 }}
+              </span>
+            }
+          </div>
+
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #e2e8f0;">
+
+          <div class="comments-section">
+            <h3>Comments ({{ product.comments?.length || 0 }})</h3>
+
+            <div class="comments-list">
+              @for (comment of product.comments; track comment._id) {
+                <div class="comment-item">
+                  <strong>{{ getCommentUsername(comment) }}</strong>
+                  <span class="comment-date">{{ comment.date | date:'short' }}</span>
+                  <p>{{ comment.text }}</p>
+                </div>
+              }
+              @if (!product.comments || product.comments.length === 0) {
+                <p class="no-comments">Be the first to leave a comment!</p>
+              }
+            </div>
+
+            @if (currentUser) {
+              <div class="add-comment-box">
+                <textarea [(ngModel)]="newCommentText" placeholder="Write a comment..." rows="3"></textarea>
+                <button class="btn-primary" (click)="postComment()">Post comment</button>
+              </div>
+            } @else {
+              <p class="login-prompt">You must be logged in to leave a comment.</p>
+            }
+          </div>
+        </div>
+
+      </div>
+    }
+
+    @if (currentStep === 'prepare') {
+      <div class="preparation-card">
+        <h2>Product preparation - {{ product.name }}</h2>
+        <p class="subtitle">Enter text or image that will be shown on the product.</p>
+
+        <div class="preparation-grid">
+
+          <div class="product-preview-box">
+            <img [src]="'http://localhost:4000/uploads/products/' + mainImage" class="base-product-img" alt="Base Product">
+
+            @if (customText) {
+              <div class="rendered-text-overlay">
+                {{ customText }}
+              </div>
+            }
+
+            @if (customImagePreview) {
+              <img [src]="customImagePreview" class="rendered-image-overlay" alt="Custom Graphic">
+            }
+          </div>
+
+          <div class="preparation-controls">
+
+            <div class="form-group">
+              <label>Enter text:</label>
+              <input type="text" [(ngModel)]="customText" placeholder="e.g. Company name, Name..." class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label>Upload image (JPG, PNG, GIF):</label>
+              <input type="file" (change)="onCustomImageSelected($event)" accept="image/jpeg,image/png,image/gif" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label>Quantity (pieces):</label>
+              <input type="number" [(ngModel)]="quantity" min="1" [max]="product.stockQuantity" class="form-control quantity-input">
+            </div>
+
+            @if (stockErrorMessage) {
+              <div class="alert-warning">
+                ⚠️ {{ stockErrorMessage }}
+              </div>
+            }
+
+            <div class="preparation-actions">
+              <button class="btn-success" (click)="addToCart()"><strong>🛒 ADD TO CART</strong></button>
+              <button class="btn-secondary" (click)="resetPreparation()"><strong>🔄 RESET</strong></button>
+              <button class="btn-dark" (click)="goBackToDetails()"><strong>⬅ BACK</strong></button>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    }
+
+    <footer style="margin-top: 20px; padding: 20px 0; border-top: 1px solid #edf2f7; text-align: center; color: #718096; font-size: 14px; background-color: #f7fafc; border-radius: 8px;">
+      <p style="margin: 0;">&copy; 2026 PIA. All rights reserved.</p>
+    </footer>
+  </div>
+} @else {
+  <div class="loading">Loading product details...</div>
+}
